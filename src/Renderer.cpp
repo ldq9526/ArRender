@@ -49,8 +49,8 @@ static GLfloat _material_specular[4] = { 0.3f, 0.3f, 0.3f, 1.f };
 GLuint Renderer::loadTexture(cv::Mat image)
 {
 	size_t lengthPixels = image.cols * image.rows * image.channels();
-	uchar * pixels = (uchar *)malloc(lengthPixels * sizeof(uchar));
-	if (pixels == NULL)
+	uchar * pixels = new uchar[lengthPixels];
+	if (pixels == nullptr)
 		return 0;
 	memcpy(pixels, image.data, lengthPixels*sizeof(uchar));
 	GLuint textureId;
@@ -61,7 +61,7 @@ GLuint Renderer::loadTexture(cv::Mat image)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.cols, image.rows, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels);
-	free(pixels);
+	delete[] pixels;
 	return textureId;
 }
 
@@ -120,11 +120,8 @@ void Renderer::keyDown(unsigned char key, int x, int y)
 					, &t[1][0], &t[1][1], &t[1][2], &t[1][3]
 					, &t[2][0], &t[2][1], &t[2][2], &t[2][3]
 					, &t[3][0], &t[3][1], &t[3][2], &t[3][3]);
-				/*t[0][3] *= 10.f;
-				t[1][3] *= 10.f;
-				t[2][3] *= 10.f;*/
 				cv::Mat cameraPose(4, 4, CV_32F, t);
-				setCameraPose(cameraPose);
+				setCameraPose(cameraPose.inv());
 				glutPostRedisplay();
 			}
 			else
@@ -301,13 +298,13 @@ Renderer::Renderer(Camera & camera, Model3D & model3d)
 /* 设置背景图片 */
 void Renderer::setBackground(const cv::Mat & background)
 {
-	_background = background.clone();
+	background.copyTo(_background);
 }
 
 /* 设置相机位姿矩阵 */
 void Renderer::setCameraPose(const cv::Mat & cameraPose)
 {
-	_cameraPose = cameraPose.clone();
+	cameraPose.copyTo(_cameraPose);
 }
 
 /* 初始化绘制环境 */
@@ -316,7 +313,7 @@ void Renderer::initialize(int argc, char * argv[])
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(int(_w), int(_h));
-	glutCreateWindow("GLWindow");
+	glutCreateWindow("ArRender");
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	initializeLight();
 	glutDisplayFunc(Renderer::display);
